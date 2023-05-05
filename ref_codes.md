@@ -21,6 +21,7 @@ int ceil(int a, int b) {
   if (a % b > 0)
     result += 1;
   return result;
+}
 ```
 
 ### 이중 우선순위 큐 (Double Ended Priority Queue)
