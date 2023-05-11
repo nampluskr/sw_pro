@@ -76,7 +76,8 @@ unordered_map<pair<int, int>, vector<int>, key_hash> selectedUsers;
 set<User> usersDEPQ;
 
 
-void init() {
+void init()
+{
 	userMap.clear();
 	users.clear();
 	selectedUsers.clear();
@@ -87,7 +88,8 @@ void init() {
 	usersDEPQ.clear();
 }
 
-void addUser(int mID, string mName, int mAge, int mScore) {
+void addUser(int mID, string mName, int mAge, int mScore)
+{
 	//// 컨테이너에 User 객체 추가 (ID 중복 사전 체크 필요 없을 때)
 	//userMap[mID] = users.size();
 	//users.emplace_back(User{ mID, mName, mAge, mScore, 1 });
@@ -112,17 +114,19 @@ void addUser(int mID, string mName, int mAge, int mScore) {
 	users[userIdx].state = 1;		// added
 }
 
-void delUser(int mID) {
+void delUser(int mID)
+{
 	users[userMap[mID]].state = 0;	// deleted
 }
 
-void print(User& u) {
+void print(User& u)
+{
 	printf(">> [ID: %d] Name: %s, Age: %d, Score: %d, State: %d\n",
 		u.ID, u.name.c_str(), u.age, u.score, u.state);
 }
 
-int main() {
-
+int main()
+{
 	init();
 
 	addUser(101, "Kim5", 10, 300);
