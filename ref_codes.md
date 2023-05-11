@@ -10,7 +10,7 @@ clock_t start = clock();
 // codes
 
 int result = (clock() - start) / (CLOCKS_PER_SEC / 1000);
-(">> Result: %d ms\n", result);
+printf(">> Result: %d ms\n", result);
 ```
 
 ### 올림 함수
