@@ -24,7 +24,7 @@ int ceil(int a, int b) {
 }
 ```
 
-### 컨테이너 자료구제 객체 저장 및 활용 예제
+### 컨테이너 자료구조 객체 저장 및 활용 예제
 
 ```cpp
 #include <string>
