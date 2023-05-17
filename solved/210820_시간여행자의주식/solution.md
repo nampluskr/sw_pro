@@ -2,7 +2,7 @@
 
 ## [최종] 자료구조 `vector` / 우선순위 큐 `tuple` 사용
 
-```cpp
+```c
 #include <array>
 #include <vector>
 #include <queue>
@@ -151,7 +151,7 @@ int bestProfit(int mStock)
 
 ## 자료구조 `vector` / 우선순위 큐 `Order` (객체) - 최적화 옵션 해제시 시간 초과
 
-```cpp
+```c
 #include <vector>
 #include <array>
 #include <string>
