@@ -21,7 +21,7 @@ using namespace std;
 struct Order {
 	int number;			// (1 <= mNumber <= 200,000)
 	int stock;			// (1 <= mStock <= 5)
-	int quantity;		// (1 <= mQuantity <= 1,000,000)
+	int quantity;			// (1 <= mQuantity <= 1,000,000)
 	int price;			// (1 <= mPrice <= 1,000,000)
 };
 
