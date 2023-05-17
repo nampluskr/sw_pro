@@ -138,43 +138,51 @@ int riseCosts(int mHotelID)
 using namespace std;
 using tuple_type = tuple<int, int, int, int>;
 
-#define MAX_HOTELS	1001
-#define MAX_ROOMS	100001
-
-// mHotelID: 호텔의 ID (1 ≤ mHotelID ≤ 1000)
-// mRoomID : 룸 ID (1 ≤ mRoomID ≤ 100,000)
-
 struct Hotel {
-	//int ID;
-	vector<int> rooms;						// room ID list
+	int ID;
+	vector<int> rooms;						// room idx list
 };
 
 struct Room {
 	int ID;
 	tuple_type roomInfo;
 	int price;
-	//int hotelID;							// hotelID
+	int hotel;								// hotelIdx
 	vector<pair<int, int>> bookingInfo;		// (checkInDate, checkOutDate)
 
-	bool operator<(const Room& r) const {
-		return make_pair(-this->price, this->ID) > make_pair(-r.price, r.ID);
+	bool operator()(const Room& r1, const Room& r2) {
+		if (r1.price > r2.price) return true;
+		if (r1.price == r2.price && r1.ID > r2.ID) return true;
+		return false;
 	}
 };
+
+unordered_map<int, int> hotelMap;
+unordered_map<int, int> roomMap;
 
 vector<Hotel> hotels;
 vector<Room> rooms;
 
-struct key_hash{
+struct key_hash : public unary_function<tuple_type, size_t> {
 	size_t operator() (const tuple_type& k) const {
 		return get<0>(k) ^ get<1>(k) ^ get<2>(k) ^ get<3>(k);
 	}
 };
+struct key_equal : public binary_function<tuple_type, tuple_type, bool> {
+	bool operator() (const tuple_type& lhs, const tuple_type& rhs) const {
+		if (get<0>(lhs) == get<0>(rhs) && get<1>(lhs) == get<1>(rhs) &&
+			get<2>(lhs) == get<2>(rhs) && get<3>(lhs) == get<3>(rhs))
+			return true;
+		return false;
+	}
+};
 
-unordered_map<tuple_type, int, key_hash> filterMap;
-vector<priority_queue<Room>> roomsFiltered;
+unordered_map<tuple_type, int, key_hash, key_equal> filterMap;
+using pq_type = priority_queue<Room, vector<Room>, Room>;
+vector<pq_type> roomsFiltered;
 
-bool checkBookingInfo(int roomID, int checkInDate, int checkOutDate) {
-	for (auto& date : rooms[roomID].bookingInfo)
+bool checkBookingInfo(int roomIdx, int checkInDate, int checkOutDate) {
+	for (auto& date : rooms[roomIdx].bookingInfo)
 		if (checkOutDate > date.first && date.second > checkInDate)
 			return false;
 	return true;
@@ -182,15 +190,11 @@ bool checkBookingInfo(int roomID, int checkInDate, int checkOutDate) {
 
 void init(int N, int mRoomCnt[])
 {
-	hotels.clear();
-	hotels.reserve(N);
-	for (int cnt = 0; cnt < N; cnt++)
-		hotels.emplace_back(Hotel{});
+	roomMap.clear();
+	hotelMap.clear();
 
 	rooms.clear();
-	rooms.reserve(MAX_ROOMS);
-	for (int cnt = 0; cnt < MAX_ROOMS; cnt++)
-		rooms.emplace_back(Room{});
+	hotels.clear();
 
 	filterMap.clear();
 	roomsFiltered.clear();
@@ -198,24 +202,42 @@ void init(int N, int mRoomCnt[])
 
 void addRoom(int mHotelID, int mRoomID, int mRoomInfo[])
 {
-	//hotels[mHotelID].ID = mHotelID;
-	hotels[mHotelID].rooms.emplace_back(mRoomID);
+	int hotelIdx, roomIdx;
 
-	rooms[mRoomID].ID = mRoomID;
-	rooms[mRoomID].roomInfo = make_tuple(mRoomInfo[0], mRoomInfo[1], mRoomInfo[2], mRoomInfo[3]);
-	rooms[mRoomID].price = mRoomInfo[4];
-	//rooms[mRoomID].hotelID = mHotelID;
-
-	int filterIdx;
-	if (filterMap.count(rooms[mRoomID].roomInfo) == 0) {
-		filterIdx = roomsFiltered.size();
-		filterMap[rooms[mRoomID].roomInfo] = filterIdx;
-		roomsFiltered.emplace_back(priority_queue<Room>{});
+	if (hotelMap.count(mHotelID) == 0) {
+		hotelIdx = hotels.size();
+		hotelMap[mHotelID] = hotelIdx;
+		hotels.emplace_back(Hotel());
 	}
 	else
-		filterIdx = filterMap[rooms[mRoomID].roomInfo];
+		hotelIdx = hotelMap[mHotelID];
 
-	roomsFiltered[filterIdx].emplace(rooms[mRoomID]);
+	if (roomMap.count(mRoomID) == 0) {
+		roomIdx = rooms.size();
+		roomMap[mRoomID] = roomIdx;
+		rooms.emplace_back(Room());
+	}
+	else
+		roomIdx = roomMap[mRoomID];
+
+	hotels[hotelIdx].ID = mHotelID;
+	hotels[hotelIdx].rooms.emplace_back(roomIdx);
+
+	rooms[roomIdx].ID = mRoomID;
+	rooms[roomIdx].roomInfo = make_tuple(mRoomInfo[0], mRoomInfo[1], mRoomInfo[2], mRoomInfo[3]);
+	rooms[roomIdx].price = mRoomInfo[4];
+	rooms[roomIdx].hotel = hotelIdx;
+
+	int filterIdx;
+	if (filterMap.count(rooms[roomIdx].roomInfo) == 0) {
+		filterIdx = roomsFiltered.size();
+		filterMap[rooms[roomIdx].roomInfo] = filterIdx;
+		roomsFiltered.emplace_back(pq_type());
+	}
+	else
+		filterIdx = filterMap[rooms[roomIdx].roomInfo];
+
+	roomsFiltered[filterIdx].push(rooms[roomIdx]);
 }
 
 int findRoom(int mFilter[])
@@ -226,26 +248,26 @@ int findRoom(int mFilter[])
 	tuple_type roomInfo = make_tuple(mFilter[2], mFilter[3], mFilter[4], mFilter[5]);
 
 	int filterIdx = filterMap[roomInfo];
-	priority_queue<Room>& pq = roomsFiltered[filterIdx];
+	pq_type& pq = roomsFiltered[filterIdx];
 	vector<int> roomsPoped;
 
 	while (not pq.empty()) {
 		Room room = pq.top(); pq.pop();
+		int roomIdx = roomMap[room.ID];
 
 		// 가격 업데이트 된 것만 탐색
-		if (rooms[room.ID].price != room.price)
-			continue;
+		if (rooms[roomIdx].price == room.price) {
+			roomsPoped.emplace_back(roomIdx);
 
-		roomsPoped.emplace_back(room.ID);
-
-		if (checkBookingInfo(room.ID, checkInDate, checkOutDate)) {
-			rooms[room.ID].bookingInfo.emplace_back(checkInDate, checkOutDate);
-			result = rooms[room.ID].ID;
-			break;
+			if (checkBookingInfo(roomIdx, checkInDate, checkOutDate)) {
+				rooms[roomIdx].bookingInfo.emplace_back(make_pair(checkInDate, checkOutDate));
+				result = rooms[roomIdx].ID;
+				break;
+			}
 		}
 	}
-	for (int roomID: roomsPoped)
-		pq.emplace(rooms[roomID]);
+	for (int idx : roomsPoped)
+		pq.push(rooms[idx]);
 
 	return result;
 }
@@ -253,14 +275,15 @@ int findRoom(int mFilter[])
 int riseCosts(int mHotelID)
 {
 	int sumRoomPrices = 0;
+	int hotelIdx = hotelMap[mHotelID];
 
-	for (int roomID : hotels[mHotelID].rooms) {
-		rooms[roomID].price += rooms[roomID].price / 10;
-		sumRoomPrices += rooms[roomID].price;
+	for (int roomIdx : hotels[hotelIdx].rooms) {
+		rooms[roomIdx].price += rooms[roomIdx].price / 10;
+		sumRoomPrices += rooms[roomIdx].price;
 
 		// 가격 업데이트 정보 반영
-		int filterIdx = filterMap[rooms[roomID].roomInfo];
-		roomsFiltered[filterIdx].emplace(rooms[roomID]);
+		int filterIdx = filterMap[rooms[roomIdx].roomInfo];
+		roomsFiltered[filterIdx].push(rooms[roomIdx]);
 	}
 	return sumRoomPrices;
 }
