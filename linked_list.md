@@ -1,4 +1,4 @@
-## Linked List (head, tail)
+## Linked List (head, tail) NULL <=> nullptr
 
 ```cpp
 #include <iostream>
